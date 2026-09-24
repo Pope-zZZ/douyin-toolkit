@@ -57,7 +57,7 @@ python scripts/douyin_downloader.py --link "用户主页链接" --action batch -
 1. 打开 https://cloud.siliconflow.cn ，手机号注册（有免费额度）
 2. 「控制台」→「API 密钥」→「新建密钥」，复制 `sk-` 开头那串
 3. 网页版：点右上角「点击配置 API」粘贴保存（保存在你自己浏览器本地）
-   命令行：`set API_KEY=sk-xxxx`（或写进环境变量 `API_KEY`）
+4. 命令行用法：先设环境变量 `API_KEY=sk-xxxx`（Windows 用 `set API_KEY=sk-xxxx`）
 
 **本工具不内置任何 Key**，每个人的 Key 各自保存、各自计费。
 
