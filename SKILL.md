@@ -40,6 +40,8 @@ python scripts/douyin_downloader.py --link "<用户主页链接>" --action batch
 
 走网页版的「油管」标签页最省事（要填代理和 cookies），命令行见 `src/web/youtube.py`：
 `--proxy` 填代理地址（如 `http://127.0.0.1:10808`）、`--cookies` 填 `cookies.txt` 路径。
+
+`cookies.txt` 怎么来：给 Edge/Chrome 装扩展 **Get cookies.txt LOCALLY** → 打开并登录 YouTube → 点扩展 → Export → 保存成 `cookies.txt`（要填它的完整路径，不是内容）。
 有字幕直接取字幕（快、免费），没字幕才走语音识别（要 Key）。4K/2K 只有 webm 格式，1080p 及以下才是 mp4。
 
 ## 网页版（给不想敲命令的人）
