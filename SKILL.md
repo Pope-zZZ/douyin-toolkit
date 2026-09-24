@@ -37,8 +37,8 @@ python scripts/douyin_downloader.py --link links.txt --action batch --max-durati
 
 ## 油管
 
-走网页版的「油管」标签页最省事（要填代理和 cookies），命令行见 `src/web/youtube.py`：
-`--proxy` 填代理地址（如 `http://127.0.0.1:10808`）、`--cookies` 填 `cookies.txt` 路径。
+油管**目前只有网页版的界面**（顶部「油管」标签页），要在设置里填代理和 cookies。
+代码层是 `src/web/youtube.py` 里的函数（`get_info(url, proxy, cookies)`、提字幕、下载），参数是函数参数，**没有单独的命令行入口**；Agent 要调就直接打接口 `/api/youtube/info`、`/api/youtube/extract`、`/api/youtube/download`。
 
 `cookies.txt` 怎么来：给 Edge/Chrome 装扩展 **Get cookies.txt LOCALLY** → 打开并登录 YouTube → 点扩展 → Export → 保存成 `cookies.txt`（要填它的完整路径，不是内容）。
 有字幕直接取字幕（快、免费），没字幕才走语音识别（要 Key）。4K/2K 只有 webm 格式，1080p 及以下才是 mp4。
@@ -55,7 +55,7 @@ python scripts/douyin_downloader.py --link links.txt --action batch --max-durati
 | 提文案报「未设置 API 密钥」 | 设 `API_KEY` 环境变量，或网页里配置 |
 | 下载的音视频合不上 / 报 ffmpeg 找不到 | ffmpeg 没进 PATH，装好或指定内置 ffmpeg 目录 |
 | 油管取不到信息 | 要代理 + cookies；地区限制的视频没 cookies 也拿不到 |
-| 批量越跑越少 | 抖音有限频：`--max-duration` 只取前 N 秒、隔一会儿再跑 |
+| 批量越跑越少 | 抖音有限频：一次别跑太多、隔一会儿再跑；`--max-duration` 只是每个视频取前 N 秒，省时间省额度 |
 
 ## 边界（别越线）
 
