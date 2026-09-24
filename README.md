@@ -1,6 +1,6 @@
 # douyin-toolkit
 
-把抖音、油管的视频和文案一次弄下来的小工具：**贴个分享链接，视频无水印下载、文案自动出稿、主页批量拿**。
+把抖音、油管的视频和文案一次弄下来的小工具：**贴个分享链接，视频无水印下载、文案自动出稿**。
 点开网页就能用，不用懂代码。
 
 > 改自开源项目 [yzfly/douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server)（Apache-2.0），改动清单见下方「改动说明」。
@@ -10,7 +10,6 @@
 **抖音**
 - 分享链接 → 无水印视频下载、视频信息
 - 文案提取（语音识别），可只取前 N 秒，省时间也省额度
-- 主页链接 → 批量列出 / 批量下载 / 批量提取文案
 
 **油管**
 - 取视频信息、字幕、下载（可选画质：最高 / 4K / 2K / 1080p / 720p / 480p / 仅音频）
@@ -50,9 +49,8 @@ python scripts/douyin_downloader.py --link "抖音分享链接" --action downloa
 # 提取文案（需要 API Key，见下）
 python scripts/douyin_downloader.py --link "抖音分享链接" --action extract --output ./output
 
-# 主页：列出 / 批量
-python scripts/douyin_downloader.py --link "用户主页链接" --action list --max-count 20
-python scripts/douyin_downloader.py --link "用户主页链接" --action batch --max-count 10 --max-duration 30
+# 批量：多个视频分享链接存成 links.txt（每行一个），一次提取文案
+python scripts/douyin_downloader.py --link links.txt --action batch --max-duration 30 --output ./output
 ```
 
 常用参数：`--output` 输出目录 · `--api-key` 密钥 · `--save-video` 提取文案时同时存视频 · `--max-count` 批量上限 · `--max-duration` 每个视频最多取前 N 秒 · `--quiet` 少打印
@@ -91,11 +89,12 @@ python src/launcher.py     # 启动网页版
 
 **新增功能（原项目没有）**
 - **YouTube 支持**：取视频信息 / 字幕 / 下载，可选画质（最高 / 4K / 2K / 1080p / 720p / 480p / 仅音频），支持代理与 cookies；没有字幕时回落到语音识别（`src/web/youtube.py` ＋ `/api/youtube/*`）
-- **主页批量**：（不稳定，已移除）
 - **多链接批量提取**：多个链接一行一个，一次解析批量（`/api/video/parse-urls`）
 - **只提取前 N 秒**：长视频先取一段，省时间也省识别额度
 - **解析失败自动重试**：分享页解析加了预热与重试，链接失效自动重来
 - **免安装打包**：PyInstaller one-folder ＋ 内置 ffmpeg / ffprobe ＋ `launcher` 双击起服务、自动开浏览器
+
+> 说明：早期版本的**主页批量（主页链接 → 列出 / 批量）**不稳定，已移除。多个视频请把链接存成 `links.txt`，用 `--action batch` 一次跑。
 
 **在原项目基础上改进（原本就有，我改了）**
 - **网页界面**：网页版是原项目自带，我在它上面新增了（前端模板、批量入口、下载交互、接口补充）

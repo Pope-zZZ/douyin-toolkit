@@ -7,7 +7,6 @@
 2. 下载视频并提取音频
 3. 使用硅基流动 API 从音频中提取文本
 4. 自动保存文案到文件 (一个视频一个文件夹)
-5. 获取用户主页视频列表
 6. 批量提取用户多个视频的前 N 秒文案
 
 环境变量:
@@ -24,10 +23,8 @@
   python douyin_downloader.py --link "抖音分享链接" --action extract --output ./output
 
   # 获取用户视频列表
-  python douyin_downloader.py --link "用户主页链接" --action list --max-count 20
 
   # 批量提取用户前10个视频的前30秒文案
-  python douyin_downloader.py --link "用户主页链接" --action batch --max-count 10 --max-duration 30 --output ./output
 """
 
 import os
@@ -71,7 +68,6 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) EdgiOS/121.0.2277.107 Version/17.0 Mobile/15E148 Safari/604.1'
 }
 
-# 请求头，模拟桌面浏览器访问（用于用户主页）
 WEB_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -216,86 +212,6 @@ class DouyinProcessor:
             "title": desc,
             "video_id": video_id
         }
-
-    @staticmethod
-    def parse_user_url(user_url: str) -> str:
-        """从用户主页链接中提取 sec_uid"""
-        # https://www.douyin.com/user/MS4wLjAB...
-        match = re.search(r'douyin\.com/user/([A-Za-z0-9_-]+)', user_url)
-        if match:
-            return match.group(1)
-        # 直接传入 sec_uid（Base64Url 格式，50+ 字符）
-        if re.fullmatch(r'[A-Za-z0-9_=-]{20,}', user_url.strip()):
-            return user_url.strip()
-        raise ValueError("无法从链接中提取 sec_uid，请提供抖音用户主页链接，如 https://www.douyin.com/user/MS4wLjAB...")
-
-    def fetch_user_videos(self, user_url: str, max_count: int = 20, show_progress: bool = True) -> list:
-        """
-        获取用户主页的视频列表
-
-        参数:
-            user_url: 用户主页链接或 sec_uid
-            max_count: 最多获取的视频数量
-            show_progress: 是否显示进度
-
-        返回:
-            视频信息列表 [{video_id, title, url}, ...]
-        """
-        sec_uid = self.parse_user_url(user_url)
-        profile_url = f'https://www.douyin.com/user/{sec_uid}'
-
-        if show_progress:
-            print(f"正在获取用户视频列表...")
-
-        response = requests.get(profile_url, headers=WEB_HEADERS)
-        response.raise_for_status()
-
-        pattern = re.compile(
-            pattern=r"window\._ROUTER_DATA\s*=\s*(.*?)</script>",
-            flags=re.DOTALL,
-        )
-        find_res = pattern.search(response.text)
-        if not find_res:
-            raise ValueError("从用户主页页面解析数据失败，页面结构可能已变化")
-
-        json_data = json.loads(find_res.group(1).strip())
-        loader_data = json_data.get("loaderData", {})
-
-        # 在 loaderData 中查找用户页面数据
-        user_page_data = None
-        for key in loader_data:
-            if key.startswith("user_") and "/page" in key:
-                user_page_data = loader_data[key]
-                break
-
-        if not user_page_data:
-            raise ValueError("从页面数据中未找到用户视频列表，页面结构可能已变化")
-
-        # 尝试获取视频列表（不同版本字段名可能不同）
-        video_list = (
-            user_page_data.get("awemeList")
-            or user_page_data.get("aweme_list")
-            or user_page_data.get("videoList")
-            or []
-        )
-
-        videos = []
-        for item in video_list[:max_count]:
-            try:
-                video_id = str(item.get("awemeId") or item.get("aweme_id") or "")
-                desc = (item.get("desc") or item.get("title") or f"douyin_{video_id}").strip()
-                desc = re.sub(r'[\\/:*?"<>|]', '_', desc)
-                video_url = item["video"]["play_addr"]["url_list"][0].replace("playwm", "play")
-                videos.append({"video_id": video_id, "title": desc, "url": video_url})
-            except (KeyError, IndexError, TypeError):
-                continue
-
-        if not videos:
-            raise ValueError("未获取到任何视频，可能原因：用户没有公开视频，或页面结构已变化")
-
-        if show_progress:
-            print(f"共获取 {len(videos)} 个视频")
-        return videos
 
     def download_video(self, video_info: dict, output_dir: Optional[Path] = None, show_progress: bool = True) -> Path:
         """下载视频"""
@@ -657,12 +573,6 @@ def extract_text(share_link: str, api_key: Optional[str] = None, output_dir: Opt
     return result
 
 
-def get_user_video_list(user_url: str, max_count: int = 20) -> list:
-    """获取用户视频列表"""
-    processor = DouyinProcessor()
-    return processor.fetch_user_videos(user_url, max_count=max_count)
-
-
 def batch_extract(source: str, api_key: Optional[str] = None, max_count: int = 10,
                   max_duration: Optional[int] = None, output_dir: Optional[str] = None,
                   save_video: bool = False, show_progress: bool = True) -> list:
@@ -671,11 +581,10 @@ def batch_extract(source: str, api_key: Optional[str] = None, max_count: int = 1
 
     参数:
         source: 可以是:
-            - 用户主页链接（尝试自动获取视频列表，可能受反爬限制）
             - 文本文件路径（每行一个视频分享链接）
             - 多个链接用逗号或空格分隔的字符串
         api_key: API 密钥
-        max_count: 最多处理的视频数量（用户主页模式下有效）
+        max_count: 最多处理的视频数量（多个链接时取前 N 个）
         max_duration: 每个视频最多提取前 N 秒的音频
         output_dir: 输出目录（所有视频的文案合并写入该目录下的 transcripts.md）
         save_video: 是否保存视频文件（保存到 output_dir 下，文件名为 视频ID.mp4）
@@ -822,7 +731,6 @@ def _parse_link_source(source: str, max_count: int, show_progress: bool) -> list
     支持三种输入形式:
     1. 文本文件路径（每行一个链接）
     2. 多个链接用逗号或换行分隔
-    3. 用户主页链接（尝试自动获取视频列表）
     """
     source = source.strip()
 
@@ -842,28 +750,11 @@ def _parse_link_source(source: str, max_count: int, show_progress: bool) -> list
         if len(links) > 1:
             return links[:max_count]
 
-    # 3. 检查是否为用户主页链接
-    if 'douyin.com/user/' in source:
-        if show_progress:
-            print("检测到用户主页链接，尝试获取视频列表...")
-            print("（注意：抖音已启用反爬保护，此功能可能不可用）")
-        processor = DouyinProcessor()
-        try:
-            videos = processor.fetch_user_videos(source, max_count=max_count, show_progress=show_progress)
-            # 转换为分享链接格式
-            return [f"https://www.iesdouyin.com/share/video/{v['video_id']}" for v in videos]
-        except Exception as e:
-            raise ValueError(
-                f"用户主页视频列表获取失败: {e}\n\n"
-                "替代方案：请将视频分享链接保存到文本文件（每行一个），然后使用：\n"
-                "  --link links.txt --action batch --max-duration 30"
-            )
-
-    # 4. 单个链接
+    # 3. 单个链接
     if source.startswith('http'):
         return [source]
 
-    raise ValueError(f"无法识别的输入: {source}\n支持的格式：\n  - 视频分享链接\n  - 文本文件路径（每行一个链接）\n  - 用户主页链接")
+    raise ValueError(f"无法识别的输入: {source}\n支持的格式：\n  - 视频分享链接\n  - 文本文件路径（每行一个链接）")
 
 
 def main():
@@ -890,9 +781,9 @@ def main():
         """
     )
 
-    parser.add_argument("--link", "-l", required=True, help="视频分享链接、文本文件路径（每行一个链接）或用户主页链接")
-    parser.add_argument("--action", "-a", choices=["info", "download", "extract", "list", "batch"],
-                        default="info", help="操作类型: info/download/extract/list(用户视频列表)/batch(批量提取)")
+    parser.add_argument("--link", "-l", required=True, help="视频分享链接，或文本文件路径（每行一个链接）")
+    parser.add_argument("--action", "-a", choices=["info", "download", "extract", "batch"],
+                        default="info", help="操作类型: info/download/extract/batch(批量提取，支持 links.txt)")
     parser.add_argument("--output", "-o", default="./output", help="输出目录 (默认 ./output)")
     parser.add_argument("--api-key", "-k", help="硅基流动 API 密钥 (也可通过 API_KEY 环境变量设置)")
     parser.add_argument("--save-video", "-v", action="store_true", help="提取文案时同时保存视频")
@@ -939,22 +830,6 @@ def main():
                 print("\n文案内容:\n")
                 print(result['text'][:500] + "..." if len(result['text']) > 500 else result['text'])
                 print("\n" + "=" * 50)
-
-        elif args.action == "list":
-            print("注意：抖音已启用反爬保护，用户主页视频列表获取功能可能不可用。")
-            print("建议：从抖音页面手动复制视频分享链接，保存到文本文件后批量处理。\n")
-            try:
-                videos = get_user_video_list(args.link, max_count=args.max_count)
-                print("\n" + "=" * 50)
-                print(f"用户视频列表（共 {len(videos)} 个）:")
-                print("=" * 50)
-                for i, v in enumerate(videos, 1):
-                    print(f"  [{i}] [{v['video_id']}] {v['title']}")
-                print("=" * 50)
-            except Exception as e:
-                print(f"获取失败: {e}")
-                print("\n替代方案：手动复制视频链接到 links.txt，然后：")
-                print("  python douyin_downloader.py --link links.txt --action batch -d 30 -o ./output")
 
         elif args.action == "batch":
             results = batch_extract(

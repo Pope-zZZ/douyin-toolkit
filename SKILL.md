@@ -1,6 +1,6 @@
 ---
 name: douyin-toolkit
-description: Use when 要下载抖音/油管视频（无水印）或提取视频文案字幕。贴链接出视频与文字稿，支持主页批量。
+description: Use when 要下载抖音/油管视频（无水印）或提取视频文案字幕。贴链接出视频与文字稿，支持多链接批量。
 ---
 
 # douyin-toolkit · 抖音/油管 视频下载 + 文案提取
@@ -26,9 +26,8 @@ python scripts/douyin_downloader.py --link "<分享链接>" --action download --
 # 提取文案（要 API_KEY）
 python scripts/douyin_downloader.py --link "<分享链接>" --action extract --output ./output --save-video
 
-# 主页批量：先列，再批
-python scripts/douyin_downloader.py --link "<用户主页链接或 sec_uid>" --action list --max-count 20
-python scripts/douyin_downloader.py --link "<用户主页链接>" --action batch --max-count 10 --max-duration 30
+# 批量：把多个分享链接存成 links.txt（每行一个），一次提取文案
+python scripts/douyin_downloader.py --link links.txt --action batch --max-duration 30 --output ./output
 ```
 
 - `--link` 也可以指向一个每行一个链接的文本文件
@@ -56,7 +55,7 @@ python scripts/douyin_downloader.py --link "<用户主页链接>" --action batch
 | 提文案报「未设置 API 密钥」 | 设 `API_KEY` 环境变量，或网页里配置 |
 | 下载的音视频合不上 / 报 ffmpeg 找不到 | ffmpeg 没进 PATH，装好或指定内置 ffmpeg 目录 |
 | 油管取不到信息 | 要代理 + cookies；地区限制的视频没 cookies 也拿不到 |
-| 主页批量越抓越少 | 抖音对主页接口有限频，降低 `--max-count`、隔一会儿再跑 |
+| 批量越跑越少 | 抖音有限频：`--max-duration` 只取前 N 秒、隔一会儿再跑 |
 
 ## 边界（别越线）
 
