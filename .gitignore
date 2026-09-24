@@ -1,0 +1,20 @@
+# 打包产物 / 构建中间件
+build/
+dist/
+*.spec.bak
+
+# 运行时下载的素材与输出
+dl/
+output/
+videos/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+
+# 密钥、配置、cookies（绝不入库）
+.env
+*.key
+API_KEY
+cookies.txt

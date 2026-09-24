@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+requests
+pydantic
+ffmpeg-python
+yt-dlp
