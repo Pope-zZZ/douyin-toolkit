@@ -64,7 +64,12 @@ class ExtractResponse(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """主页面"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    try:
+        # 新版 Starlette（0.29+）：request 是关键字参数
+        return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
+    except TypeError:
+        # 旧版 Starlette：参数顺序是 (name, context)
+        return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/api/health")
