@@ -1,6 +1,6 @@
 # douyin-toolkit
 
-把抖音、油管的视频和文案一次弄下来的小工具：**贴个分享链接，视频无水印下载、文案自动出稿**。
+把抖音、油管、B站的视频和文案一次弄下来的小工具：**贴个分享链接，视频无水印下载、文案自动出稿**。
 点开网页就能用，不用懂代码。
 
 > 改自开源项目 [yzfly/douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server)（Apache-2.0），改动清单见下方「改动说明」。
@@ -16,6 +16,11 @@
 - 有字幕直接用字幕（快、准、不花额度），没字幕才走语音识别
 - 支持填代理、填 cookies 解决登录和地区限制
 
+**B站**
+- 取视频信息、下载（可选画质：最高 / 1080p / 720p / 480p / 360p / 仅音频）
+- 有 CC 字幕直接用字幕，没字幕才走语音识别
+- 国内直连、不用代理；但**下高画质（720p/1080p）和取字幕需要登录 cookies**（未登录只能 360p/480p、无字幕）
+
 ### 油管第一次用要配三样
 在网页版右上角「点击配置 API」里一次性填好：
 
@@ -27,6 +32,15 @@
 3. **API Key**：可选，只有视频没有字幕、需要语音识别时才用得上
 
 油管功能依赖 `yt-dlp`，源码运行时要装；exe 版已内置。
+
+### B站第一次用要配一样（可选，但强烈建议）
+B 站**国内直连、不用代理**，但想下 720p/1080p 高画质、取 CC 字幕，需要登录后的 cookies：
+
+1. 给 Edge / Chrome 装扩展 **Get cookies.txt LOCALLY**（同油管那个扩展）
+2. 打开并登录 bilibili.com → 点扩展图标 → Export → 得到 `cookies.txt`
+3. 把它的完整路径填进设置里的「B站 cookies.txt 路径」
+
+> 不填也能用：能下 360p/480p、能取视频信息；只是没有高画质和字幕（B 站大部分视频本来也没有 CC 字幕，没字幕时会自动走语音识别兜底）。
 
 ## 怎么用
 
@@ -75,7 +89,7 @@ python scripts/douyin_downloader.py --link links.txt --action batch --max-durati
 
 - Python 3.10+
 - ffmpeg / ffprobe（下载音频、合成视频要用；exe 版已内置）
-- 油管功能另需 yt-dlp（Node.js 运行时）
+- 油管 / B站功能另需 yt-dlp（Node.js 运行时）
 
 ```bash
 pip install -r requirements.txt
@@ -89,6 +103,7 @@ python src/launcher.py     # 启动网页版
 
 **新增功能（原项目没有）**
 - **YouTube 支持**：取视频信息 / 字幕 / 下载，可选画质（最高 / 4K / 2K / 1080p / 720p / 480p / 仅音频），支持代理与 cookies；没有字幕时回落到语音识别（`src/web/youtube.py` ＋ `/api/youtube/*`）
+- **B站支持**：取视频信息 / 下载 / CC 字幕，可选画质（最高 / 1080p / 720p / 480p / 360p / 仅音频），国内直连、需登录 cookies 才能下高画质和取字幕；没有字幕时回落到语音识别（`src/web/bilibili.py` ＋ `/api/bilibili/*`）
 - **多链接批量提取**：多个链接一行一个，一次解析批量（`/api/video/parse-urls`）
 - **只提取前 N 秒**：长视频先取一段，省时间也省识别额度
 - **解析失败自动重试**：分享页解析加了预热与重试，链接失效自动重来

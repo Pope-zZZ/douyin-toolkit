@@ -1,9 +1,9 @@
 ---
 name: douyin-toolkit
-description: Use when 要下载抖音/油管视频（无水印）或提取视频文案字幕。贴链接出视频与文字稿，支持多链接批量。
+description: Use when 要下载抖音/油管/B站视频（无水印）或提取视频文案字幕。贴链接出视频与文字稿，支持多链接批量。
 ---
 
-# douyin-toolkit · 抖音/油管 视频下载 + 文案提取
+# douyin-toolkit · 抖音/油管/B站 视频下载 + 文案提取
 
 贴一个分享链接，拿到：无水印视频文件、视频信息、文字稿（语音识别）。油管同理，优先用现成字幕。
 
@@ -42,6 +42,15 @@ python scripts/douyin_downloader.py --link links.txt --action batch --max-durati
 
 `cookies.txt` 怎么来：给 Edge/Chrome 装扩展 **Get cookies.txt LOCALLY** → 打开并登录 YouTube → 点扩展 → Export → 保存成 `cookies.txt`（要填它的完整路径，不是内容）。
 有字幕直接取字幕（快、免费），没字幕才走语音识别（要 Key）。4K/2K 只有 webm 格式，1080p 及以下才是 mp4。
+
+## B站
+
+B 站**国内直连、不用代理**；代码层是 `src/web/bilibili.py`（`get_info(url, cookies)`、`extract_subtitle(url, cookies)`、`download_video(url, cookies, quality)`），接口 `/api/bilibili/info`、`/api/bilibili/extract`、`/api/bilibili/download`。
+
+- 下 720p/1080p 高画质、取 CC 字幕**都需要登录后的 cookies**（SESSDATA）；不填 cookies 只能下 360p/480p、无字幕。
+- cookies 同样用「Get cookies.txt LOCALLY」导 bilibili.com 的。
+- B 站大部分视频没有 CC 字幕（弹幕是 xml，不算字幕，已排除）；没字幕时回落到语音识别（要 Key）。
+- 有字幕时 yt-dlp 把 B 站字幕转成 `.srt` 输出，`_srt_to_text` 解析。
 
 ## 网页版（给不想敲命令的人）
 

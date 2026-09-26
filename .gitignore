@@ -2,6 +2,7 @@
 build/
 dist/
 *.spec.bak
+.venv-build/
 
 # 运行时下载的素材与输出
 dl/

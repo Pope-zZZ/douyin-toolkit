@@ -30,6 +30,7 @@ import requests
 # 导入抖音处理模块
 from douyin_downloader import get_video_info, extract_text, HEADERS, DouyinProcessor
 import youtube
+import bilibili
 
 app = FastAPI(title="抖音文案提取器", version="1.0.0")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -282,6 +283,67 @@ async def youtube_extract(req: YouTubeExtractRequest):
 async def youtube_download(background_tasks: BackgroundTasks, url: str,
                            quality: str = "best", proxy: str = "", cookies: str = ""):
     result = await asyncio.to_thread(youtube.download_video, url, proxy, cookies, quality)
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error", "下载失败"))
+    path = result["path"]
+    filename = Path(path).name
+    background_tasks.add_task(_cleanup_file, path)
+    return FileResponse(path, media_type="application/octet-stream", filename=filename)
+
+
+class BiliInfoRequest(BaseModel):
+    """B 站视频信息请求"""
+    url: str
+    cookies: str = ""
+
+
+class BiliExtractRequest(BaseModel):
+    """B 站文案提取请求"""
+    url: str
+    cookies: str = ""
+    api_key: str = ""
+
+
+@app.post("/api/bilibili/info")
+async def bilibili_info(req: BiliInfoRequest):
+    return await asyncio.to_thread(bilibili.get_info, req.url, req.cookies)
+
+
+@app.post("/api/bilibili/extract", response_model=ExtractResponse)
+async def bilibili_extract(req: BiliExtractRequest):
+    info = await asyncio.to_thread(bilibili.get_info, req.url, req.cookies)
+    title = info.get("title", "") if info.get("success") else ""
+
+    # 1) 优先用 CC 字幕（需登录）
+    sub = await asyncio.to_thread(bilibili.extract_subtitle, req.url, req.cookies)
+    if sub.get("success") and sub.get("text"):
+        return ExtractResponse(success=True, video_id="", title=title, text=sub["text"], download_url=req.url)
+
+    # 2) 无字幕 → 语音识别兜底
+    api_key = req.api_key or os.getenv("API_KEY", "")
+    if not api_key:
+        return ExtractResponse(success=False, error="该视频没有可用 CC 字幕（多数 B 站视频没有字幕，且取字幕需登录），且未配置 API Key，无法语音识别")
+
+    audio = await asyncio.to_thread(bilibili.extract_audio, req.url, req.cookies)
+    if not audio.get("success"):
+        return ExtractResponse(success=False, error=audio.get("error"))
+
+    def _transcribe():
+        processor = DouyinProcessor(api_key)
+        return processor.extract_text_from_audio(Path(audio["path"]), show_progress=False)
+
+    try:
+        text = await asyncio.to_thread(_transcribe)
+        Path(audio["path"]).unlink(missing_ok=True)
+        return ExtractResponse(success=True, video_id="", title=title, text=text, download_url=req.url)
+    except Exception as e:
+        return ExtractResponse(success=False, error=str(e))
+
+
+@app.get("/api/bilibili/download")
+async def bilibili_download(background_tasks: BackgroundTasks, url: str,
+                            quality: str = "best", cookies: str = ""):
+    result = await asyncio.to_thread(bilibili.download_video, url, cookies, quality)
     if not result.get("success"):
         raise HTTPException(status_code=500, detail=result.get("error", "下载失败"))
     path = result["path"]

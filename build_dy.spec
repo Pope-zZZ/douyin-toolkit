@@ -19,6 +19,7 @@ for pkg in ("fastapi", "uvicorn", "jinja2", "starlette"):
 datas += [
     (os.path.join(ROOT, "src", "web", "app.py"), "web"),
     (os.path.join(ROOT, "src", "web", "youtube.py"), "web"),
+    (os.path.join(ROOT, "src", "web", "bilibili.py"), "web"),
     (os.path.join(ROOT, "src", "web", "templates"), "web/templates"),
     (os.path.join(ROOT, "src", "douyin-video", "scripts", "douyin_downloader.py"), "douyin-video/scripts"),
 ]

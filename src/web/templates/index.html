@@ -233,6 +233,13 @@
                     <p class="mt-2 text-xs text-douyin-gray-400">用「Get cookies.txt LOCALLY」扩展导出的文件完整路径</p>
                 </div>
 
+                <!-- B站 cookies 路径 -->
+                <div>
+                    <label class="block text-sm font-medium text-douyin-gray-700 mb-2">B站 cookies.txt 路径（下高画质 / 取字幕需要）</label>
+                    <input x-model="biliCookies" placeholder="例如 C:/Users/你的用户名/Desktop/bili_cookies.txt" class="w-full px-4 py-3 text-sm border border-douyin-gray-200 rounded-xl focus-ring transition-smooth font-mono">
+                    <p class="mt-2 text-xs text-douyin-gray-400">登录 B 站后用「Get cookies.txt LOCALLY」导出 bilibili.com 的 cookies；不填只能下 360p/480p、无字幕</p>
+                </div>
+
                 <!-- Status Indicator -->
                 <div class="p-4 rounded-xl" :class="apiKeyInput ? 'bg-green-50 border border-green-100' : 'bg-douyin-gray-50'">
                     <div class="flex items-center gap-3">
@@ -333,6 +340,11 @@
                     :class="activeTab === 'youtube' ? 'bg-gradient-douyin text-white shadow-lg shadow-douyin-red/20' : 'text-douyin-gray-600 hover:bg-douyin-gray-100'"
                     class="px-6 py-2.5 rounded-xl text-sm font-medium transition-smooth">
                 油管
+            </button>
+            <button @click="activeTab = 'bilibili'"
+                    :class="activeTab === 'bilibili' ? 'bg-gradient-douyin text-white shadow-lg shadow-douyin-red/20' : 'text-douyin-gray-600 hover:bg-douyin-gray-100'"
+                    class="px-6 py-2.5 rounded-xl text-sm font-medium transition-smooth">
+                B站
             </button>
         </div>
 
@@ -802,6 +814,67 @@
                 </div>
             </div>
         </div>
+
+        <!-- B站面板 -->
+        <div x-show="activeTab === 'bilibili'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-white rounded-2xl shadow-card p-6">
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-douyin-gray-700 mb-2">B站链接</label>
+                        <textarea x-model="biliUrl" rows="3" placeholder="粘贴 B 站视频链接（bilibili.com/video/BV... 或 b23.tv 短链）" :disabled="biliLoading" class="w-full px-4 py-3 text-sm border border-douyin-gray-200 rounded-xl resize-none focus-ring transition-smooth placeholder:text-douyin-gray-400"></textarea>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-douyin-gray-700 mb-2">画质</label>
+                        <select x-model="biliQuality" class="w-full px-4 py-3 text-sm border border-douyin-gray-200 rounded-xl focus-ring transition-smooth bg-white">
+                            <option value="best">最高画质</option>
+                            <option value="1080p">1080p（需大会员）</option>
+                            <option value="720p">720p（需登录）</option>
+                            <option value="480p">480p</option>
+                            <option value="360p">360p</option>
+                            <option value="audio">仅音频</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-3">
+                        <button @click="biliGetInfo" :disabled="!biliUrl || biliLoading" class="flex-1 h-11 bg-douyin-gray-100 hover:bg-douyin-gray-200 text-douyin-gray-700 font-medium text-sm rounded-xl transition-smooth disabled:opacity-50 disabled:cursor-not-allowed">获取信息</button>
+                        <button @click="biliExtract" :disabled="!biliUrl || biliLoading" class="flex-1 h-11 bg-gradient-douyin hover:opacity-90 text-white font-medium text-sm rounded-xl transition-smooth disabled:opacity-50 disabled:cursor-not-allowed">提取文案</button>
+                        <button @click="biliDownload" :disabled="!biliUrl || biliLoading || !biliInfo" class="flex-1 h-11 bg-white border-2 border-douyin-red text-douyin-red hover:bg-douyin-red hover:text-white font-medium text-sm rounded-xl transition-smooth disabled:opacity-50 disabled:cursor-not-allowed">下载</button>
+                    </div>
+                    <div x-show="!biliCookies" @click="showSettings = true" class="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl cursor-pointer hover:bg-amber-100 transition-smooth">
+                        <div class="text-xs text-amber-800">
+                            <p class="font-medium">B站建议先配置「B站 cookies.txt」（登录后可下 720p/1080p、取 CC 字幕）</p>
+                            <p class="mt-1 text-amber-600">点击此处去配置</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="lg:col-span-7 space-y-6">
+                <div x-show="biliLoading" class="bg-white rounded-2xl shadow-card p-10 text-center text-douyin-gray-400">
+                    <p x-text="biliLoadingText"></p>
+                </div>
+                <div x-show="biliError" class="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-600" x-text="biliError"></div>
+                <div x-show="biliInfo" class="bg-white rounded-2xl shadow-card p-6">
+                    <div class="flex gap-4">
+                        <img x-show="biliInfo.thumbnail" :src="biliInfo.thumbnail" class="w-44 h-24 object-cover rounded-lg bg-douyin-gray-100">
+                        <div class="min-w-0">
+                            <h3 class="font-semibold text-douyin-gray-900 leading-snug" x-text="biliInfo.title"></h3>
+                            <p class="text-xs text-douyin-gray-400 mt-1" x-show="biliInfo.uploader">UP主：<span x-text="biliInfo.uploader"></span></p>
+                            <p class="text-xs text-douyin-gray-400 mt-1">画质：<span x-text="(biliInfo.formats||[]).map(f=>f.height+'p').join(' / ') || '—'"></span></p>
+                            <p class="text-xs text-douyin-gray-400 mt-1">字幕：<span x-text="biliSubtitleSummary"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div x-show="biliTranscript" class="bg-white rounded-2xl shadow-card p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-douyin-gray-900">文案内容</h3>
+                        <div class="flex gap-2">
+                            <button @click="copyToClipboard(biliTranscript)" class="px-3 py-1.5 text-xs bg-douyin-gray-100 hover:bg-douyin-gray-200 rounded-lg text-douyin-gray-700">复制</button>
+                            <button @click="downloadText(biliTranscript, biliInfo?.title || 'bilibili')" class="px-3 py-1.5 text-xs bg-douyin-gray-100 hover:bg-douyin-gray-200 rounded-lg text-douyin-gray-700">下载</button>
+                        </div>
+                    </div>
+                    <div class="whitespace-pre-wrap text-sm text-douyin-gray-700 leading-relaxed max-h-96 overflow-y-auto" x-text="biliTranscript"></div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Toast Notification -->
@@ -845,6 +918,14 @@
                 ytTranscript: '',
                 ytQuality: 'best',
                 ytError: '',
+                biliUrl: '',
+                biliCookies: '',
+                biliLoading: false,
+                biliLoadingText: '',
+                biliInfo: null,
+                biliTranscript: '',
+                biliQuality: 'best',
+                biliError: '',
                 loading: false,
                 loadingText: '',
                 extractingText: false,
@@ -890,6 +971,14 @@
                     return '有字幕（非中英文）';
                 },
 
+                get biliSubtitleSummary() {
+                    const subs = this.biliInfo?.subtitles || [];
+                    if (!subs.length) return '无 CC 字幕（未登录取不到，可用语音识别）';
+                    const hasZh = subs.some(l => l.toLowerCase().startsWith('zh'));
+                    if (hasZh) return '有中文字幕';
+                    return '有字幕：' + subs.join(', ');
+                },
+
                 async checkHealth() {
                     // Load API key from localStorage
                     const savedKey = localStorage.getItem('douyin_api_key');
@@ -899,6 +988,7 @@
                     }
                     this.proxy = localStorage.getItem('douyin_proxy') || '';
                     this.cookiesPath = localStorage.getItem('douyin_cookies') || '';
+                    this.biliCookies = localStorage.getItem('douyin_bili_cookies') || '';
 
                     try {
                         const res = await fetch('/api/health');
@@ -916,6 +1006,7 @@
                     }
                     localStorage.setItem('douyin_proxy', this.proxy || '');
                     localStorage.setItem('douyin_cookies', this.cookiesPath || '');
+                    localStorage.setItem('douyin_bili_cookies', this.biliCookies || '');
                     this.showSettings = false;
                     this.showToast('配置已保存');
                 },
@@ -1012,6 +1103,70 @@
                         cookies: this.cookiesPath
                     });
                     window.location.href = '/api/youtube/download?' + q.toString();
+                },
+
+                async biliGetInfo() {
+                    if (!this.biliUrl || this.biliLoading) return;
+                    this.biliLoading = true;
+                    this.biliLoadingText = '正在获取视频信息...';
+                    this.biliError = '';
+                    this.biliInfo = null;
+                    try {
+                        const res = await fetch('/api/bilibili/info', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: this.biliUrl, cookies: this.biliCookies })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.biliInfo = data;
+                        } else {
+                            this.biliError = data.error || '获取信息失败';
+                        }
+                    } catch (e) {
+                        this.biliError = '网络错误，请检查网络';
+                    } finally {
+                        this.biliLoading = false;
+                    }
+                },
+
+                async biliExtract() {
+                    if (!this.biliUrl || this.biliLoading) return;
+                    this.biliLoading = true;
+                    this.biliLoadingText = '正在提取文案...';
+                    this.biliError = '';
+                    this.biliTranscript = '';
+                    try {
+                        const res = await fetch('/api/bilibili/extract', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: this.biliUrl, cookies: this.biliCookies, api_key: this.apiKey })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.biliTranscript = data.text;
+                            if (data.title && !this.biliInfo) {
+                                this.biliInfo = { title: data.title };
+                            }
+                            this.showToast('文案提取成功');
+                        } else {
+                            this.biliError = data.error || '提取失败';
+                        }
+                    } catch (e) {
+                        this.biliError = '网络错误，请检查网络';
+                    } finally {
+                        this.biliLoading = false;
+                    }
+                },
+
+                biliDownload() {
+                    if (!this.biliUrl) return;
+                    const q = new URLSearchParams({
+                        url: this.biliUrl,
+                        quality: this.biliQuality,
+                        cookies: this.biliCookies
+                    });
+                    window.location.href = '/api/bilibili/download?' + q.toString();
                 },
 
                 downloadText(text, title) {
