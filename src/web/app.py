@@ -32,7 +32,7 @@ from douyin_downloader import get_video_info, extract_text, HEADERS, DouyinProce
 import youtube
 import bilibili
 
-app = FastAPI(title="抖音文案提取器", version="1.0.0")
+app = FastAPI(title="抖音文案提取器", version="1.1.0")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
